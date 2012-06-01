@@ -27,8 +27,10 @@ JAVA_HOME=/usr/local/jre1.7.0_04/
 
 # create subsys dir
 mkdir -p /var/lock/subsys
+
+# Check whether you are root to execute
 if [ `id -u` -ne 0 ]; then
-        echo "you have to be root user to execuite this script"
+        echo "you have to be root user to execute this script"
         exit 1;
 fi
 #Create Serviio User if not exisits 
@@ -61,9 +63,7 @@ serviio_pid()
 {
 echo `ps auxww | grep "org.serviio.MediaServer" | grep -v grep | awk '{ print $2 }'`
 }
-
-echo serviio pid is `serviio_pid`
-
+# block of case on start, stop, restart and status 
 
 case "$1" in
   stop)
