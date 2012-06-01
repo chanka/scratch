@@ -1,0 +1,19 @@
+Serviio Media Server startup script for ubuntu
+* copy your serviio file in /etc/init.d
+	o service serviio status
+	o service serviio start
+	o service serviio stop
+	o service serviio restart
+* update your run level scripts
+#sudo update-rc.d serviio defaults 98 02
+ Adding system startup for /etc/init.d/serviio ...
+   /etc/rc0.d/K02serviio -> ../init.d/serviio
+   /etc/rc1.d/K02serviio -> ../init.d/serviio
+   /etc/rc6.d/K02serviio -> ../init.d/serviio
+   /etc/rc2.d/S98serviio -> ../init.d/serviio
+   /etc/rc3.d/S98serviio -> ../init.d/serviio
+   /etc/rc4.d/S98serviio -> ../init.d/serviio
+   /etc/rc5.d/S98serviio -> ../init.d/serviio
+# chkconfig --list |grep serviio
+serviio                   0:off  1:off  2:on   3:on   4:on   5:on   6:off
+
