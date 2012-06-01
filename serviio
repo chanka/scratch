@@ -1,0 +1,126 @@
+#!/bin/bash
+#
+# Startup script for the Serviio Media Server 
+#
+# Author : Chanka Perera 
+#
+### BEGIN INIT INFO
+# Provides:          Sevrviio Media Server 
+# Required-Start:    $local_fs $network
+# Required-Stop:     $local_fs $network
+# Should-Start:      $null
+# Should-Stop:       $null
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start Serviio 
+# Description:       Start the Serviio on Ubuntu startup 
+### END INIT INFO
+
+. /lib/lsb/init-functions
+set -e
+#Run using Serviio (unprivileged user)
+SERVIIO_USER=serviio
+DIRNAME=`dirname $0`
+PROGNAME=`basename $0`
+SERVIIO_HOME=/usr/local/serviio-0.6.2
+JAVA_HOME=/usr/local/jre1.7.0_04/
+
+# create subsys dir
+mkdir -p /var/lock/subsys
+if [ `id -u` -ne 0 ]; then
+        echo "you have to be root user to execuite this script"
+        exit 1;
+fi
+#Create Serviio User if not exisits 
+/bin/grep -i "^${SERVIIO_USER}" /etc/passwd >/dev/null 
+if [ $? -eq 0 ]; then 
+	echo "User ${SERVIIO_USER} already exists in your system"
+else 
+	groupadd -g 1010 $SERVIIO_USER
+	useradd -u 1010 -g $SERVIIO_USER -c "$SERVIIO_USER" -r -s "/bin/bash" $SERVIIO_USER
+fi
+
+
+# Setup the JVM
+if [ "x$JAVA" = "x" ]; then
+    if [ "x$JAVA_HOME" != "x" ]; then
+        JAVA="$JAVA_HOME/bin/java"
+    else
+        JAVA="java"
+    fi
+fi
+
+# Setup the classpath
+SERVIIO_CLASS_PATH="$SERVIIO_HOME/lib/*:$SERVIIO_HOME/config"
+
+# Setup Serviio specific properties
+JAVA_OPTS="-Xmx2048M -Xms512M -XX:+UseParNewGC -XX:MinHeapFreeRatio=20 -XX:MaxHeapFreeRatio=20 -Djava.net.preferIPv4Stack=true -Djava.awt.headless=true -Dderby.system.home=$SERVIIO_HOME/library -Dserviio.home=$SERVIIO_HOME"
+
+#Get the pid 
+serviio_pid() 
+{
+echo `ps auxww | grep "org.serviio.MediaServer" | grep -v grep | awk '{ print $2 }'`
+}
+
+echo serviio pid is `serviio_pid`
+
+
+case "$1" in
+  stop)
+	pid=$(serviio_pid)
+	if [ -n "$pid" ]
+        then
+        # Stop daemons.
+        echo -n "Shutting down Serviio Media Server having pid :$pid "
+	kill -15 $pid
+	sleep 3
+        pid2=$(serviio_pid)
+	if [ -n "$pid2" ]; then
+        # Stop daemons.
+                echo "Did not Shut Down Nicley, it's time to kill the pid "
+                kill -9 $pid2
+        fi
+        RETVAL=$?
+        [ $RETVAL = 0 ] && rm -f /var/lock/subsys/serviio
+        else
+            echo "Serviio has stopped or not running at all!!"
+        fi
+        ;;
+  start)	
+   pid=$(serviio_pid)
+   if [ -n "$pid" ]
+	then 
+	echo "Serviio Media server is already running with pid $pid and you dont have to do anything"
+	exit 
+   fi
+# Start daemon.
+        echo -e "Starting Serviio Media Server as user $SERVIIO_USER"
+	su - $SERVIIO_USER -c "$JAVA $JAVA_OPTS -classpath $SERVIIO_CLASS_PATH org.serviio.MediaServer &"
+	RETVAL=$?
+	echo
+        [ $RETVAL = 0 ] && touch /var/lock/subsys/serviio
+	sleep 3;
+	echo -e "Serviio Service Deamon has started sucssfully .."
+        ;;
+
+ restart)
+        $0 stop
+	sleep 3
+        $0 start 
+        ;;
+  status)
+       pid=$(serviio_pid)
+       if [ -n "$pid" ]
+       then
+            echo "Serviio is running with pid: $pid"
+       else
+            echo "Serviio is not running, start it or check your serviio logs"
+       fi
+       ;;
+  *)
+        echo "Usage: $0 {start|stop|restart|status} "
+        exit 1
+esac
+
+exit 0
+
